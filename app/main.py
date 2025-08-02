@@ -225,6 +225,54 @@ persons_db = {
     }
 }
 
+relationships_db = [
+    {
+        "id": "1",
+        "type": "vert",
+        "fromPersonId": "1",
+        "toPersonId": "3",
+        "roleFrom": "father",
+        "roleTo": "son",
+        "startDate": "1973-02-10"
+    },
+    {
+        "id": "2",
+        "type": "vert",
+        "fromPersonId": "2",
+        "toPersonId": "3",
+        "roleFrom": "mother",
+        "roleTo": "son",
+        "startDate": "1973-02-10"
+    },
+    {
+        "id": "3",
+        "type": "hor",
+        "fromPersonId": "3",
+        "toPersonId": "4",
+        "roleFrom": "husband",
+        "roleTo": "wife",
+        "startDate": "1995-08-12"
+    },
+    {
+        "id": "4",
+        "type": "vert",
+        "fromPersonId": "3",
+        "toPersonId": "5",
+        "roleFrom": "father",
+        "roleTo": "son",
+        "startDate": "1998-11-15"
+    },
+    {
+        "id": "5",
+        "type": "vert",
+        "fromPersonId": "4",
+        "toPersonId": "5",
+        "roleFrom": "mother",
+        "roleTo": "son",
+        "startDate": "1998-11-15"
+    }
+]
+
 @app.get("/persons")
 def list_persons():
     return list(persons_db.values())
@@ -341,3 +389,37 @@ def download_person(person_id: str, format: str = "PDF"):
     if person_id not in persons_db:
         raise HTTPException(status_code=404, detail="Person not found")
     return {"message": f"Downloading person {person_id} in {format} format"}
+
+
+@app.get("/trees/{treeId}", tags=["Tree Core"])
+def get_tree_data(treeId: str):
+    # Преобразуем persons_db в список для ответа
+    persons_list = list(persons_db.values())
+
+    # Формируем ответ в соответствии с вашей OpenAPI спецификацией
+    return {
+        "persons": [
+            {
+                "id": person["id"],
+                "firstName": person["basicInfo"]["firstName"],
+                "lastName": person["basicInfo"]["lastName"],
+                "middleName": person["basicInfo"]["middleName"],
+                "x": "0",  # Позиция по X (хардкод)
+                "y": "0",  # Позиция по Y (хардкод)
+                "gender": person["basicInfo"]["gender"],
+                "birthDate": person["basicInfo"]["birth"]["startDate"],
+                "deathDate": person["basicInfo"]["death"]["startDate"] if person["basicInfo"]["death"] else None,
+                "isAlive": person["basicInfo"]["lifeStatus"] == "ALIVE"
+            }
+            for person in persons_list
+        ],
+        "relationships": relationships_db
+    }
+
+
+@app.get("/persons/{personId}", tags=["Persons"])
+def get_person_details(personId: str):
+    if personId not in persons_db:
+        return {"error": "Person not found"}, 404
+
+    return persons_db[personId]
