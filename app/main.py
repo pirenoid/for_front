@@ -25,6 +25,8 @@ persons_db = {
         "relationType": "дедушка",
         "fullName": "Иванов Иван Иванович",
         "age": 75,
+        "x": 0,
+        "y": 0,
         "basicInfo": {
             "lastName": "Иванов",
             "firstName": "Иван",
@@ -82,6 +84,8 @@ persons_db = {
         "relationType": "бабушка",
         "fullName": "Иванова Мария Петровна",
         "age": 72,
+        "x": 100,
+        "y": 100,
         "basicInfo": {
             "lastName": "Иванова",
             "firstName": "Мария",
@@ -122,6 +126,8 @@ persons_db = {
         "relationType": "отец",
         "fullName": "Иванов Сергей Иванович",
         "age": 50,
+        "x": 200,
+        "y": 200,
         "basicInfo": {
             "lastName": "Иванов",
             "firstName": "Сергей",
@@ -147,6 +153,8 @@ persons_db = {
         "relationType": "мать",
         "fullName": "Иванова Елена Сергеевна",
         "age": 48,
+        "x": 300,
+        "y": 200,
         "basicInfo": {
             "lastName": "Иванова",
             "firstName": "Елена",
@@ -192,6 +200,8 @@ persons_db = {
         "relationType": "сын",
         "fullName": "Иванов Алексей Сергеевич",
         "age": 25,
+        "x": 300,
+        "y": 400,
         "basicInfo": {
             "lastName": "Иванов",
             "firstName": "Алексей",
@@ -404,8 +414,8 @@ def get_tree_data(treeId: str):
                 "firstName": person["basicInfo"]["firstName"],
                 "lastName": person["basicInfo"]["lastName"],
                 "middleName": person["basicInfo"]["middleName"],
-                "x": "0",  # Позиция по X (хардкод)
-                "y": "0",  # Позиция по Y (хардкод)
+                "x": person["x"],  # Позиция по X (хардкод)
+                "y": person["y"],  # Позиция по Y (хардкод)
                 "gender": person["basicInfo"]["gender"],
                 "birthDate": person["basicInfo"]["birth"]["startDate"],
                 "deathDate": person["basicInfo"]["death"]["startDate"] if person["basicInfo"]["death"] else None,
