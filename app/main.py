@@ -25,9 +25,6 @@ persons_db = {
         "relationType": "дедушка",
         "fullName": "Иванов Иван Иванович",
         "age": 75,
-        "isPublic": True,
-        "canSearchMatches": True,
-        "downloadUrl": "/persons/1/download",
         "basicInfo": {
             "lastName": "Иванов",
             "firstName": "Иван",
@@ -55,7 +52,6 @@ persons_db = {
                     "description": "Молодые годы"
                 }
             ],
-            "lastUpdated": "2023-01-15T10:30:00"
         },
         "events": [
             {
@@ -86,9 +82,6 @@ persons_db = {
         "relationType": "бабушка",
         "fullName": "Иванова Мария Петровна",
         "age": 72,
-        "isPublic": True,
-        "canSearchMatches": True,
-        "downloadUrl": "/persons/2/download",
         "basicInfo": {
             "lastName": "Иванова",
             "firstName": "Мария",
@@ -109,7 +102,6 @@ persons_db = {
         "biography": {
             "content": "Родилась в Ленинграде в 1945 году...",
             "media": [],
-            "lastUpdated": "2023-01-16T11:20:00"
         },
         "events": [
             {
@@ -130,9 +122,6 @@ persons_db = {
         "relationType": "отец",
         "fullName": "Иванов Сергей Иванович",
         "age": 50,
-        "isPublic": False,
-        "canSearchMatches": False,
-        "downloadUrl": "/persons/3/download",
         "basicInfo": {
             "lastName": "Иванов",
             "firstName": "Сергей",
@@ -149,7 +138,6 @@ persons_db = {
         "biography": {
             "content": None,
             "media": [],
-            "lastUpdated": "2023-01-10T09:15:00"
         },
         "events": []
     },
@@ -159,9 +147,6 @@ persons_db = {
         "relationType": "мать",
         "fullName": "Иванова Елена Сергеевна",
         "age": 48,
-        "isPublic": False,
-        "canSearchMatches": False,
-        "downloadUrl": "/persons/4/download",
         "basicInfo": {
             "lastName": "Иванова",
             "firstName": "Елена",
@@ -186,7 +171,6 @@ persons_db = {
                     "description": "На работе"
                 }
             ],
-            "lastUpdated": "2023-02-01T14:45:00"
         },
         "events": [
             {
@@ -208,9 +192,6 @@ persons_db = {
         "relationType": "сын",
         "fullName": "Иванов Алексей Сергеевич",
         "age": 25,
-        "isPublic": True,
-        "canSearchMatches": True,
-        "downloadUrl": "/persons/5/download",
         "basicInfo": {
             "lastName": "Иванов",
             "firstName": "Алексей",
@@ -227,7 +208,6 @@ persons_db = {
         "biography": {
             "content": "Учится в аспирантуре.",
             "media": [],
-            "lastUpdated": "2023-01-20T16:30:00"
         },
         "events": [
             {
