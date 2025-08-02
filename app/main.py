@@ -361,3 +361,58 @@ def download_person(person_id: str, format: str = "PDF"):
     if person_id not in persons_db:
         raise HTTPException(status_code=404, detail="Person not found")
     return {"message": f"Downloading person {person_id} in {format} format"}
+
+
+"""dev_login_stub.py
+FastAPI‑заглушка ровно под спецификацию Dev Lock Login API v1.0.2
+
+• POST /dev-login — принимает JSON {login, password} и возвращает mock‑JWT.
+• Логин/пароль по умолчанию: admin / adimi.
+• Токен живёт 3600 сек (1 час) и используется как Bearer‑token на клиенте.
+"""
+
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+import uuid, time
+
+app = FastAPI(title="Dev Lock Login API", version="1.0.2")
+
+# ---------------------------------------------------------------------------
+# Константы (простейшая конфигурация, можно вынести в env‑переменные)
+# ---------------------------------------------------------------------------
+SECRET_LOGIN = "admin"
+SECRET_PASSWORD = "adimi"
+TOKEN_TTL = 3600  # secs
+
+# ---------------------------------------------------------------------------
+# Pydantic‑модели запроса/ответа (один‑в‑один с OpenAPI)
+# ---------------------------------------------------------------------------
+
+class LoginRequest(BaseModel):
+    login: str
+    password: str
+
+class LoginResponse(BaseModel):
+    accessToken: str
+    tokenType: str = "Bearer"
+    expiresIn: int
+
+# ---------------------------------------------------------------------------
+# Вспомогалка: генерируем mock JWT (здесь без подписи, т‑к это лишь заглушка)
+# ---------------------------------------------------------------------------
+
+def _issue_jwt() -> str:
+    """Собираем строку вида: mock.<uuid>.<expUnix>"""
+    exp = int(time.time()) + TOKEN_TTL
+    return f"mock.{uuid.uuid4()}.{exp}"
+
+# ---------------------------------------------------------------------------
+# /dev-login
+# ---------------------------------------------------------------------------
+
+@app.post("/dev-login", response_model=LoginResponse, tags=["Dev Access"], summary="Логин → JWT")
+def dev_login(payload: LoginRequest):
+    if payload.login != SECRET_LOGIN or payload.password != SECRET_PASSWORD:
+        raise HTTPException(status_code=401, detail="Invalid login or password")
+
+    return LoginResponse(accessToken=_issue_jwt(), expiresIn=TOKEN_TTL)
