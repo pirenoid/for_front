@@ -230,7 +230,7 @@ def list_persons():
     return list(persons_db.values())
 
 @app.post("/persons")
-def create_person():
+def create_person(from_id : str):
     return persons_db["1"]
 
 @app.get("/persons/{person_id}")
@@ -292,9 +292,7 @@ def update_event(person_id: str, event_id: str):
     }
 
 @app.delete("/persons/{person_id}/events/{event_id}")
-def delete_event(person_id: str, event_id: str, confirmed: bool = Query(False)):
-    if not confirmed:
-        raise HTTPException(status_code=400, detail="Confirmation required")
+def delete_event(person_id: str, event_id: str):
     if person_id not in persons_db:
         raise HTTPException(status_code=404, detail="Person not found")
     return {"status": "deleted"}
