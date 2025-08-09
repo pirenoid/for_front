@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Query, HTTPException
+from fastapi import FastAPI, Query, HTTPException, Body
 from typing import Optional, List
 from enum import Enum
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,418 +18,151 @@ app.add_middleware(
                    "Access-Control-Allow-Origin", "Authorization"],
 )
 
-persons_db = {
+_invites_db = {
     "1": {
         "id": "1",
-        "photoUrl": "https://example.com/photos/1.jpg",
-        "relationType": "дедушка",
-        "fullName": "Иванов Иван Иванович",
-        "age": 75,
-        "x": 0,
-        "y": 0,
-        "basicInfo": {
-            "lastName": "Иванов",
-            "firstName": "Иван",
-            "middleName": "Иванович",
-            "gender": "MALE",
-            "lifeStatus": "DECEASED",
-            "birth": {
-                "dateType": "EXACT",
-                "startDate": "1940-05-15",
-                "location": "Москва"
-            },
-            "death": {
-                "dateType": "EXACT",
-                "startDate": "2015-03-10",
-                "location": "Санкт-Петербург"
-            }
-        },
-        "biography": {
-            "content": "Родился в Москве в 1940 году...",
-            "media": [
-                {
-                    "id": "media-1",
-                    "url": "https://example.com/media/1.jpg",
-                    "type": "IMAGE",
-                    "description": "Молодые годы"
-                }
-            ],
-        },
-        "events": [
-            {
-                "id": "event-1",
-                "type": "BIRTH",
-                "dateInfo": {
-                    "dateType": "EXACT",
-                    "startDate": "1940-05-15"
-                },
-                "location": "Москва",
-                "isSystem": True
-            },
-            {
-                "id": "event-2",
-                "type": "MARRIAGE",
-                "dateInfo": {
-                    "dateType": "EXACT",
-                    "startDate": "1965-07-20"
-                },
-                "location": "Ленинград",
-                "description": "Женился на Петровой Марии"
-            }
-        ]
+        "email": "anna@example.com",
+        "nameSurname": "Анна Сидорова",
+        "invitedAt": "2025-07-01",
+        "status": "pending",
+        "role": "participant",
+        "treeName": "Семья Сидоровых",
     },
     "2": {
         "id": "2",
-        "photoUrl": "https://example.com/photos/2.jpg",
-        "relationType": "бабушка",
-        "fullName": "Иванова Мария Петровна",
-        "age": 72,
-        "x": 100,
-        "y": 100,
-        "basicInfo": {
-            "lastName": "Иванова",
-            "firstName": "Мария",
-            "middleName": "Петровна",
-            "gender": "FEMALE",
-            "lifeStatus": "DECEASED",
-            "birth": {
-                "dateType": "EXACT",
-                "startDate": "1945-08-20",
-                "location": "Ленинград"
-            },
-            "death": {
-                "dateType": "EXACT",
-                "startDate": "2017-11-05",
-                "location": "Санкт-Петербург"
-            }
-        },
-        "biography": {
-            "content": "Родилась в Ленинграде в 1945 году...",
-            "media": [],
-        },
-        "events": [
-            {
-                "id": "event-3",
-                "type": "BIRTH",
-                "dateInfo": {
-                    "dateType": "EXACT",
-                    "startDate": "1945-08-20"
-                },
-                "location": "Ленинград",
-                "isSystem": True
-            }
-        ]
+        "email": "boris@example.com",
+        "nameSurname": "Борис Иванов",
+        "invitedAt": "2025-07-03",
+        "status": "accepted",
+        "role": "admin",
+        "treeName": "Семья Ивановых",
     },
     "3": {
         "id": "3",
-        "photoUrl": None,
-        "relationType": "отец",
-        "fullName": "Иванов Сергей Иванович",
-        "age": 50,
-        "x": 200,
-        "y": 200,
-        "basicInfo": {
-            "lastName": "Иванов",
-            "firstName": "Сергей",
-            "middleName": "Иванович",
-            "gender": "MALE",
-            "lifeStatus": "ALIVE",
-            "birth": {
-                "dateType": "EXACT",
-                "startDate": "1973-02-10",
-                "location": "Ленинград"
-            },
-            "death": None
-        },
-        "biography": {
-            "content": None,
-            "media": [],
-        },
-        "events": []
+        "email": "svetlana@example.com",
+        "nameSurname": "Светлана Петрова",
+        "invitedAt": "2025-07-05",
+        "status": "declined",
+        "role": "participant",
+        "treeName": "Семья Петровых",
     },
     "4": {
         "id": "4",
-        "photoUrl": "https://example.com/photos/4.jpg",
-        "relationType": "мать",
-        "fullName": "Иванова Елена Сергеевна",
-        "age": 48,
-        "x": 300,
-        "y": 200,
-        "basicInfo": {
-            "lastName": "Иванова",
-            "firstName": "Елена",
-            "middleName": "Сергеевна",
-            "maidenName": "Петрова",
-            "gender": "FEMALE",
-            "lifeStatus": "ALIVE",
-            "birth": {
-                "dateType": "EXACT",
-                "startDate": "1975-06-25",
-                "location": "Санкт-Петербург"
-            },
-            "death": None
-        },
-        "biography": {
-            "content": "Работает врачом в городской больнице.",
-            "media": [
-                {
-                    "id": "media-2",
-                    "url": "https://example.com/media/2.jpg",
-                    "type": "IMAGE",
-                    "description": "На работе"
-                }
-            ],
-        },
-        "events": [
-            {
-                "id": "event-4",
-                "type": "EDUCATION",
-                "dateInfo": {
-                    "dateType": "RANGE",
-                    "startDate": "1992-09-01",
-                    "endDate": "1998-06-30"
-                },
-                "location": "Санкт-Петербургский медицинский университет",
-                "description": "Окончила с отличием"
-            }
-        ]
+        "email": "dmitry@example.com",
+        "nameSurname": "Дмитрий Орлов",
+        "invitedAt": "2025-07-10",
+        "status": "pending",
+        "role": "participant",
+        "treeName": "Семья Орловых",
     },
     "5": {
         "id": "5",
-        "photoUrl": "https://example.com/photos/5.jpg",
-        "relationType": "сын",
-        "fullName": "Иванов Алексей Сергеевич",
-        "age": 25,
-        "x": 300,
-        "y": 400,
-        "basicInfo": {
-            "lastName": "Иванов",
-            "firstName": "Алексей",
-            "middleName": "Сергеевич",
-            "gender": "MALE",
-            "lifeStatus": "ALIVE",
-            "birth": {
-                "dateType": "EXACT",
-                "startDate": "1998-11-15",
-                "location": "Санкт-Петербург"
-            },
-            "death": None
-        },
-        "biography": {
-            "content": "Учится в аспирантуре.",
-            "media": [],
-        },
-        "events": [
-            {
-                "id": "event-5",
-                "type": "EDUCATION",
-                "dateInfo": {
-                    "dateType": "RANGE",
-                    "startDate": "2016-09-01",
-                    "endDate": "2022-06-30"
-                },
-                "location": "СПбГУ",
-                "description": "Бакалавриат и магистратура"
-            }
-        ]
-    }
+        "email": "maria@example.com",
+        "nameSurname": "Мария Романова",
+        "invitedAt": "2025-07-12",
+        "status": "pending",
+        "role": "admin",
+        "treeName": "Семья Романовых",
+    },
 }
 
-relationships_db = [
-    {
-        "id": "1",
-        "type": "vert",
-        "fromPersonId": "1",
-        "toPersonId": "3",
-        "roleFrom": "father",
-        "roleTo": "son",
-        "startDate": "1973-02-10"
-    },
-    {
-        "id": "2",
-        "type": "vert",
-        "fromPersonId": "2",
-        "toPersonId": "3",
-        "roleFrom": "mother",
-        "roleTo": "son",
-        "startDate": "1973-02-10"
-    },
-    {
-        "id": "3",
-        "type": "hor",
-        "fromPersonId": "3",
-        "toPersonId": "4",
-        "roleFrom": "husband",
-        "roleTo": "wife",
-        "startDate": "1995-08-12"
-    },
-    {
-        "id": "4",
-        "type": "vert",
-        "fromPersonId": "3",
-        "toPersonId": "5",
-        "roleFrom": "father",
-        "roleTo": "son",
-        "startDate": "1998-11-15"
-    },
-    {
-        "id": "5",
-        "type": "vert",
-        "fromPersonId": "4",
-        "toPersonId": "5",
-        "roleFrom": "mother",
-        "roleTo": "son",
-        "startDate": "1998-11-15"
+_token_to_invite = {
+    "tok-1-accept": "1",
+    "tok-2-accept": "2",
+    "tok-3-accept": "3",
+    "tok-4-accept": "4",
+    "tok-5-accept": "5",
+    "tok-1-decline": "1",
+    "tok-2-decline": "2",
+    "tok-3-decline": "3",
+    "tok-4-decline": "4",
+    "tok-5-decline": "5",
+}
+
+@app.get("/invites", tags=["invites"])
+def list_invites(
+    search: str | None = Query(None, description="Поиск по имени/почте"),
+    sort: str = Query("date", regex="^(date|name)$", description="date|name"),
+    order: str = Query("desc", regex="^(asc|desc)$", description="asc|desc"),
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+):
+    items = list(_invites_db.values())
+
+    # фильтр по search
+    if search:
+        s = search.lower()
+        items = [
+            it for it in items
+            if s in it["nameSurname"].lower() or s in it["email"].lower()
+        ]
+
+    # сортировка
+    if sort == "date":
+        key_fn = lambda it: it["invitedAt"]
+    else:
+        key_fn = lambda it: it["nameSurname"]
+
+    items.sort(key=key_fn, reverse=(order == "desc"))
+    total = len(items)
+
+    # пагинация
+    items = items[offset:offset + limit]
+    return {"items": items, "total": total}
+
+@app.post("/invites", status_code=201, tags=["invites"])
+def create_invite(body: dict = Body(...)):
+    new_id = str(max(map(int, _invites_db.keys())) + 1)
+    invite = {
+        "id": new_id,
+        "email": body.get("email", "newuser@example.com"),
+        "nameSurname": body.get("email", "newuser@example.com").split("@")[0].capitalize(),
+        "invitedAt": "2025-08-01",
+        "status": "pending",
+        "role": body.get("role", "participant"),
+        "treeName": "Семья Романовых",
     }
-]
+    _invites_db[new_id] = invite
+    _token_to_invite[f"tok-{new_id}-accept"] = new_id
+    _token_to_invite[f"tok-{new_id}-decline"] = new_id
+    return invite
 
-@app.get("/persons")
-def list_persons():
-    return list(persons_db.values())
+@app.patch("/invites/{inviteId}", tags=["invites"])
+def update_invite_role(inviteId: str, body: dict = Body(...)):
+    if inviteId not in _invites_db:
+        raise HTTPException(status_code=404, detail="Приглашение не найдено")
+    role = body.get("role")
+    if role not in ("participant", "admin"):
+        raise HTTPException(status_code=400, detail="Некорректные данные (role)")
+    _invites_db[inviteId]["role"] = role
+    return _invites_db[inviteId]
 
-@app.post("/persons")
-def create_person():
-    return persons_db["1"]
+@app.delete("/invites/{inviteId}", status_code=204, tags=["invites"])
+def delete_invite(inviteId: str):
+    if inviteId not in _invites_db:
+        raise HTTPException(status_code=404, detail="Приглашение не найдено")
+    _invites_db.pop(inviteId, None)
+    for k in list(_token_to_invite.keys()):
+        if _token_to_invite[k] == inviteId:
+            _token_to_invite.pop(k)
+    return Response(status_code=204)
 
-@app.get("/persons/{person_id}")
-def get_person(person_id: str):
-    if person_id not in persons_db:
-        raise HTTPException(status_code=404, detail="Person not found")
-    return persons_db[person_id]
+@app.post("/invites/by-token/{token}/accept", tags=["invites"])
+def accept_invite(token: str):
+    invite_id = _token_to_invite.get(token)
+    if not invite_id:
+        raise HTTPException(status_code=400, detail="Некорректный или просроченный токен")
+    if invite_id not in _invites_db:
+        raise HTTPException(status_code=404, detail="Приглашение не найдено")
+    _invites_db[invite_id]["status"] = "accepted"
+    return _invites_db[invite_id]
 
-@app.patch("/persons/{person_id}")
-def update_person(person_id: str):
-    if person_id not in persons_db:
-        raise HTTPException(status_code=404, detail="Person not found")
-    return persons_db[person_id]
-
-@app.put("/persons/{person_id}/photo")
-def update_photo(person_id: str):
-    if person_id not in persons_db:
-        raise HTTPException(status_code=404, detail="Person not found")
-    return persons_db[person_id]
-
-@app.delete("/persons/{person_id}/photo")
-def delete_photo(person_id: str, confirmed: bool = Query(False)):
-    if not confirmed:
-        raise HTTPException(status_code=400, detail="Confirmation required")
-    if person_id not in persons_db:
-        raise HTTPException(status_code=404, detail="Person not found")
-    return persons_db[person_id]
-
-@app.get("/persons/{person_id}/events")
-def get_events(person_id: str, limit: int = 20, offset: int = 0):
-    if person_id not in persons_db:
-        raise HTTPException(status_code=404, detail="Person not found")
-    return persons_db[person_id]["events"][offset:offset+limit]
-
-@app.post("/persons/{person_id}/events")
-def create_event(person_id: str):
-    if person_id not in persons_db:
-        raise HTTPException(status_code=404, detail="Person not found")
-    return {
-        "id": "event-new",
-        "type": "OTHER",
-        "dateInfo": {
-            "dateType": "EXACT",
-            "startDate": "2023-01-01"
-        }
-    }
-
-@app.patch("/persons/{person_id}/events/{event_id}")
-def update_event(person_id: str, event_id: str):
-    if person_id not in persons_db:
-        raise HTTPException(status_code=404, detail="Person not found")
-    return {
-        "id": event_id,
-        "type": "OTHER",
-        "dateInfo": {
-            "dateType": "EXACT",
-            "startDate": "2023-01-01"
-        }
-    }
-
-@app.delete("/persons/{person_id}/events/{event_id}")
-def delete_event(person_id: str, event_id: str, confirmed: bool = Query(False)):
-    if not confirmed:
-        raise HTTPException(status_code=400, detail="Confirmation required")
-    if person_id not in persons_db:
-        raise HTTPException(status_code=404, detail="Person not found")
-    return {"status": "deleted"}
-
-@app.put("/persons/{person_id}/biography")
-def update_biography(person_id: str):
-    if person_id not in persons_db:
-        raise HTTPException(status_code=404, detail="Person not found")
-    return persons_db[person_id]["biography"]
-
-@app.post("/persons/{person_id}/biography/media")
-def add_biography_media(person_id: str):
-    if person_id not in persons_db:
-        raise HTTPException(status_code=404, detail="Person not found")
-    return {
-        "id": "media-new",
-        "url": "https://example.com/media/new.jpg",
-        "type": "IMAGE",
-        "uploadedAt": "2023-01-01T00:00:00"
-    }
-
-@app.delete("/persons/{person_id}/biography/media/{media_id}")
-def delete_biography_media(person_id: str, media_id: str, confirmed: bool = Query(False)):
-    if not confirmed:
-        raise HTTPException(status_code=400, detail="Confirmation required")
-    if person_id not in persons_db:
-        raise HTTPException(status_code=404, detail="Person not found")
-    return {"status": "deleted"}
-
-@app.post("/persons/{person_id}/matches")
-def search_matches(person_id: str):
-    if person_id not in persons_db:
-        raise HTTPException(status_code=404, detail="Person not found")
-    return {"jobId": "job-123"}
-
-@app.post("/persons/{person_id}/archive-search")
-def search_archives(person_id: str):
-    if person_id not in persons_db:
-        raise HTTPException(status_code=404, detail="Person not found")
-    return {"jobId": "job-456"}
-
-@app.get("/persons/{person_id}/download")
-def download_person(person_id: str, format: str = "PDF"):
-    if person_id not in persons_db:
-        raise HTTPException(status_code=404, detail="Person not found")
-    return {"message": f"Downloading person {person_id} in {format} format"}
-
-
-@app.get("/trees/{treeId}", tags=["Tree Core"])
-def get_tree_data(treeId: str):
-    # Преобразуем persons_db в список для ответа
-    persons_list = list(persons_db.values())
-
-    # Формируем ответ в соответствии с вашей OpenAPI спецификацией
-    return {
-        "persons": [
-            {
-                "id": person["id"],
-                "firstName": person["basicInfo"]["firstName"],
-                "lastName": person["basicInfo"]["lastName"],
-                "middleName": person["basicInfo"]["middleName"],
-                "x": person["x"],  # Позиция по X (хардкод)
-                "y": person["y"],  # Позиция по Y (хардкод)
-                "gender": person["basicInfo"]["gender"],
-                "birthDate": person["basicInfo"]["birth"]["startDate"],
-                "deathDate": person["basicInfo"]["death"]["startDate"] if person["basicInfo"]["death"] else None,
-                "isAlive": person["basicInfo"]["lifeStatus"] == "ALIVE"
-            }
-            for person in persons_list
-        ],
-        "relationships": relationships_db
-    }
-
-
-@app.get("/persons/{personId}", tags=["Persons"])
-def get_person_details(personId: str):
-    if personId not in persons_db:
-        return {"error": "Person not found"}, 404
-
-    return persons_db[personId]
+@app.post("/invites/by-token/{token}/decline", tags=["invites"])
+def decline_invite(token: str):
+    invite_id = _token_to_invite.get(token)
+    if not invite_id:
+        raise HTTPException(status_code=400, detail="Некорректный или просроченный токен")
+    if invite_id not in _invites_db:
+        raise HTTPException(status_code=404, detail="Приглашение не найдено")
+    _invites_db[invite_id]["status"] = "declined"
+    return _invites_db[invite_id]
