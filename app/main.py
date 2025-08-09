@@ -1,10 +1,4 @@
-from fastapi import FastAPI, Query, HTTPException, UploadFile, status, Body
-from typing import Optional, List
-from enum import Enum
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from datetime import datetime
-import uuid
+from fastapi import APIRouter, HTTPException, Query, Body, Response
 
 app = FastAPI()
 
@@ -21,608 +15,253 @@ app.add_middleware(
                    "Access-Control-Allow-Origin", "Authorization"],
 )
 
-
-class DateInfo(BaseModel):
-    dateType: str
-    startDate: Optional[str] = None
-    endDate: Optional[str] = None
-    approximateText: Optional[str] = None
-    location: Optional[str] = None
-
-
-class BasicInfo(BaseModel):
-    lastName: str
-    firstName: str
-    middleName: Optional[str] = None
-    maidenName: Optional[str] = None
-    birthName: Optional[str] = None
-    gender: str
-    lifeStatus: str
-    birth: DateInfo
-    death: Optional[DateInfo] = None
-
-
-class PersonResponse(BaseModel):
-    id: str
-    photoUrl: Optional[str] = None
-    relationType: str
-    isPublic: bool
-    downloadUrl: str
-    basicInfo: BasicInfo
-
-
-class PersonCreate(BaseModel):
-    fromId: str
-    relationType: str
-    isPublic: bool = False
-    basicInfo: BasicInfo
-
-
-class PersonUpdate(BaseModel):
-    relationType: Optional[str] = None
-    isPublic: Optional[bool] = None
-    basicInfo: Optional[BasicInfo] = None
-
-
-class MediaItem(BaseModel):
-    id: str
-    url: str
-    type: str
-    thumbnailUrl: Optional[str] = None
-    description: Optional[str] = None
-    uploadedAt: str
-
-
-class Biography(BaseModel):
-    content: Optional[str] = None
-    media: List[MediaItem] = None
-    lastUpdated: str
-
-
-class BiographyUpdate(BaseModel):
-    content: Optional[str] = None
-    mediaIdsToDelete: Optional[List[str]] = None
-
-
-class Event(BaseModel):
-    id: str
-    type: str
-    dateInfo: DateInfo
-    location: Optional[str] = None
-    description: Optional[str] = None
-    isSystem: bool = False
-
-
-class EventCreate(BaseModel):
-    type: str
-    dateInfo: DateInfo
-    location: Optional[str] = None
-    description: Optional[str] = None
-
-
-class EventUpdate(BaseModel):
-    type: Optional[str] = None
-    dateInfo: Optional[DateInfo] = None
-    location: Optional[str] = None
-    description: Optional[str] = None
-
-
-persons_db = {
-    "1": {
-        "id": "1",
-        "photoUrl": "https://example.com/photos/1.jpg",
-        "relationType": "дедушка",
-        "isPublic": False,
-        "downloadUrl": "/persons/1/download",
-        "basicInfo": {
-            "lastName": "Иванов",
-            "firstName": "Иван",
-            "middleName": "Иванович",
-            "gender": "MALE",
-            "lifeStatus": "DECEASED",
-            "birth": {
-                "dateType": "EXACT",
-                "startDate": "1940-05-15",
-                "location": "Москва"
-            },
-            "death": {
-                "dateType": "EXACT",
-                "startDate": "2015-03-10",
-                "location": "Санкт-Петербург"
-            }
-        },
-        "biography": {
-            "content": "Родился в Москве в 1940 году...",
-            "media": [
-                {
-                    "id": "media-1",
-                    "url": "https://example.com/media/1.jpg",
-                    "type": "IMAGE",
-                    "description": "Молодые годы",
-                    "uploadedAt": "2020-01-01T00:00:00"
-                }
-            ],
-            "lastUpdated": "2020-01-01T00:00:00"
-        },
-        "events": [
-            {
-                "id": "event-1",
-                "type": "BIRTH",
-                "dateInfo": {
-                    "dateType": "EXACT",
-                    "startDate": "1940-05-15"
-                },
-                "location": "Москва",
-                "isSystem": True
-            }
-        ]
-    }
+_persons = {
+    "1": {"id": "1", "surname": "Иванов",  "name": "Иван"},
+    "2": {"id": "2", "surname": "Иванова", "name": "Мария"},
+    "3": {"id": "3", "surname": "Петров",  "name": "Сергей"},
+    "4": {"id": "4", "surname": "Сидорова","name": "Елена"},
+    "5": {"id": "5", "surname": "Орлов",   "name": "Дмитрий"},
 }
 
-
-def generate_id():
-    return str(uuid.uuid4())
-
-
-def get_current_datetime():
-    return datetime.now().isoformat()
-
-
-@app.post("/persons", status_code=status.HTTP_201_CREATED, response_model=PersonResponse)
-def create_person(person: PersonCreate):
-    person_id = generate_id()
-
-    new_person = {
-        "id": person_id,
-        "photoUrl": None,
-        "relationType": person.relationType,
-        "isPublic": person.isPublic,
-        "downloadUrl": f"/persons/{person_id}/download",
-        "basicInfo": person.basicInfo
-    }
-
-    persons_db[person_id] = {
-        **new_person,
-        "biography": {
-            "content": None,
-            "media": [],
-            "lastUpdated": get_current_datetime()
-        },
-        "events": []
-    }
-
-    return new_person
-
-
-@app.get("/persons/{person_id}", response_model=PersonResponse)
-def get_person(person_id: str):
-    if person_id not in persons_db:
-        raise HTTPException(status_code=404, detail="Person not found")
-
-    person_data = persons_db[person_id]
-    return {
-        "id": person_data["id"],
-        "photoUrl": person_data["photoUrl"],
-        "relationType": person_data["relationType"],
-        "isPublic": person_data["isPublic"],
-        "downloadUrl": person_data["downloadUrl"],
-        "basicInfo": person_data["basicInfo"]
-    }
-
-
-@app.patch("/persons/{person_id}", response_model=PersonResponse)
-def update_person(person_id: str, person_update: PersonUpdate):
-    if person_id not in persons_db:
-        raise HTTPException(status_code=404, detail="Person not found")
-
-    person = persons_db[person_id]
-
-    if person_update.relationType is not None:
-        person["relationType"] = person_update.relationType
-
-    if person_update.isPublic is not None:
-        person["isPublic"] = person_update.isPublic
-
-    if person_update.basicInfo is not None:
-        person["basicInfo"] = person_update.basicInfo
-
-    return {
-        "id": person["id"],
-        "photoUrl": person["photoUrl"],
-        "relationType": person["relationType"],
-        "isPublic": person["isPublic"],
-        "downloadUrl": person["downloadUrl"],
-        "basicInfo": person["basicInfo"]
-    }
-
-
-@app.put("/persons/{person_id}/photo", response_model=PersonResponse)
-def update_photo(person_id: str, photo: UploadFile):
-    if person_id not in persons_db:
-        raise HTTPException(status_code=404, detail="Person not found")
-
-    photo_url = f"https://example.com/photos/{person_id}.jpg"
-    persons_db[person_id]["photoUrl"] = photo_url
-
-    person = persons_db[person_id]
-    return {
-        "id": person["id"],
-        "photoUrl": person["photoUrl"],
-        "relationType": person["relationType"],
-        "isPublic": person["isPublic"],
-        "downloadUrl": person["downloadUrl"],
-        "basicInfo": person["basicInfo"]
-    }
-
-
-@app.delete("/persons/{person_id}/photo", response_model=PersonResponse)
-def delete_photo(person_id: str, confirmed: bool = Query(False)):
-    if not confirmed:
-        raise HTTPException(status_code=400, detail="Confirmation required")
-    if person_id not in persons_db:
-        raise HTTPException(status_code=404, detail="Person not found")
-
-    persons_db[person_id]["photoUrl"] = None
-
-    person = persons_db[person_id]
-    return {
-        "id": person["id"],
-        "photoUrl": person["photoUrl"],
-        "relationType": person["relationType"],
-        "isPublic": person["isPublic"],
-        "downloadUrl": person["downloadUrl"],
-        "basicInfo": person["basicInfo"]
-    }
-
-
-@app.get("/persons/{person_id}/events", response_model=List[Event])
-def get_events(person_id: str, limit: int = 20, offset: int = 0):
-    if person_id not in persons_db:
-        raise HTTPException(status_code=404, detail="Person not found")
-    return persons_db[person_id]["events"][offset:offset + limit]
-
-
-@app.post("/persons/{person_id}/events", status_code=status.HTTP_201_CREATED, response_model=Event)
-def create_event(person_id: str, event: EventCreate):
-    if person_id not in persons_db:
-        raise HTTPException(status_code=404, detail="Person not found")
-
-    new_event = {
-        "id": generate_id(),
-        **event.dict(),
-        "isSystem": False
-    }
-    persons_db[person_id]["events"].append(new_event)
-    return new_event
-
-
-@app.patch("/persons/{person_id}/events/{event_id}", response_model=Event)
-def update_event(person_id: str, event_id: str, event_update: EventUpdate):
-    if person_id not in persons_db:
-        raise HTTPException(status_code=404, detail="Person not found")
-
-    events = persons_db[person_id]["events"]
-    event_to_update = next((e for e in events if e["id"] == event_id), None)
-
-    if not event_to_update:
-        raise HTTPException(status_code=404, detail="Event not found")
-
-    if event_update.type is not None:
-        event_to_update["type"] = event_update.type
-
-    if event_update.dateInfo is not None:
-        event_to_update["dateInfo"] = event_update.dateInfo
-
-    if event_update.location is not None:
-        event_to_update["location"] = event_update.location
-
-    if event_update.description is not None:
-        event_to_update["description"] = event_update.description
-
-    return event_to_update
-
-
-@app.delete("/persons/{person_id}/events/{event_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_event(person_id: str, event_id: str):
-    if person_id not in persons_db:
-        raise HTTPException(status_code=404, detail="Person not found")
-
-    events = persons_db[person_id]["events"]
-    event_to_delete = next((e for e in events if e["id"] == event_id), None)
-
-    if not event_to_delete:
-        raise HTTPException(status_code=404, detail="Event not found")
-
-    persons_db[person_id]["events"] = [e for e in events if e["id"] != event_id]
-    return None
-
-
-@app.put("/persons/{person_id}/biography", response_model=Biography)
-def update_biography(person_id: str, biography_update: BiographyUpdate):
-    if person_id not in persons_db:
-        raise HTTPException(status_code=404, detail="Person not found")
-
-    if biography_update.content is not None:
-        persons_db[person_id]["biography"]["content"] = biography_update.content
-
-    if biography_update.mediaIdsToDelete:
-        media_ids_to_delete = set(biography_update.mediaIdsToDelete)
-        persons_db[person_id]["biography"]["media"] = [
-            m for m in persons_db[person_id]["biography"]["media"]
-            if m["id"] not in media_ids_to_delete
-        ]
-
-    persons_db[person_id]["biography"]["lastUpdated"] = get_current_datetime()
-
-    bio = persons_db[person_id]["biography"]
-    return {
-        "content": bio["content"],
-        "media": bio["media"],
-        "lastUpdated": bio["lastUpdated"]
-    }
-
-@app.post("/persons/{person_id}/biography/media", status_code=status.HTTP_201_CREATED, response_model=MediaItem)
-def add_biography_media(person_id: str, file: UploadFile, type: str, description: Optional[str] = None):
-    if person_id not in persons_db:
-        raise HTTPException(status_code=404, detail="Person not found")
-
-    new_media = {
-        "id": generate_id(),
-        "url": f"https://example.com/media/{generate_id()}",
-        "type": type,
-        "description": description,
-        "uploadedAt": get_current_datetime()
-    }
-    persons_db[person_id]["biography"]["media"].append(new_media)
-    return new_media
-
-
-@app.delete("/persons/{person_id}/biography/media/{media_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_biography_media(person_id: str, media_id: str, confirmed: bool = Query(False)):
-    if not confirmed:
-        raise HTTPException(status_code=400, detail="Confirmation required")
-    if person_id not in persons_db:
-        raise HTTPException(status_code=404, detail="Person not found")
-
-    persons_db[person_id]["biography"]["media"] = [
-        m for m in persons_db[person_id]["biography"]["media"]
-        if m["id"] != media_id
-    ]
-    return None
-
-
-@app.post("/persons/{person_id}/archive-search", status_code=status.HTTP_202_ACCEPTED)
-def search_archives(person_id: str):
-    if person_id not in persons_db:
-        raise HTTPException(status_code=404, detail="Person not found")
-    return {"jobId": generate_id()}
-
-
-@app.get("/persons/{person_id}/download")
-def download_person(person_id: str, format: str = "PDF"):
-    if person_id not in persons_db:
-        raise HTTPException(status_code=404, detail="Person not found")
-    return {"message": f"Downloading person {person_id} in {format} format"}
-
-
-class LoginRequest(BaseModel):
-    login: str
-    password: str
-
-@app.post("/dev-login", tags=["Dev Access"], summary="Логин")
-def dev_login(payload: LoginRequest):
-    if payload.login != 'admin' or payload.password != 'admin':
-        raise HTTPException(status_code=401, detail="Invalid login or password")
-
-    return {'message': 'ok'}
-
-
-class UserRegistration(BaseModel):
-    firstName: str
-    lastName: str
-    gender: Optional[str] = None
-    email: Optional[str] = None
-    birthDate: Optional[str] = None
-    accessToken: Optional[str] = None
-    refreshToken: Optional[str] = None
-
-
-# Хардкод данных
-HARDCODED_TREE = {
-    "name": "Древо Ивановых"
+_events = {
+    "e1": {"id": "e1", "name": "Свадьба 1965"},
+    "e2": {"id": "e2", "name": "Окончание вуза 1998"},
+    "e3": {"id": "e3", "name": "Рождение 1998-11-15"},
+}
+_geotags = {
+    "g1": {"id": "g1", "locationName": "Москва",          "coordinates": {"latitude": 55.75, "longitude": 37.61}},
+    "g2": {"id": "g2", "locationName": "Санкт-Петербург", "coordinates": {"latitude": 59.93, "longitude": 30.31}},
+    "g3": {"id": "g3", "locationName": "Ленинград",       "coordinates": {"latitude": 59.93, "longitude": 30.25}},
 }
 
-HARDCODED_PERSONS = [
-    {
-        "id": "person-1",
-        "firstName": "Иван",
-        "lastName": "Иванов",
-        "middleName": "",
-        "x": 100,
-        "y": 200,
-        "gender": "male",
-        "birthDate": "1980-05-15",
-        "deathDate": "",
-        "isAlive": True,
-        "role": "Вы",
-        "photoUrl": "https://example.com/photos/ivan.jpg"
+_media = {
+    "m1": {
+        "id": "m1", "type": "photo", "fileName": "grandpa", "fileExtension": "jpg", "fileSize": 123456,
+        "dateAdded": "2025-08-01", "previewUrl": "https://example.com/media/m1_preview.jpg",
+        "originalUrl": "https://example.com/media/m1.jpg", "description": "Дедушка в молодости.",
+        "persons": [ _persons["1"], _persons["2"] ], "events": [ _events["e1"] ], "geotags": [ _geotags["g1"] ],
     },
-    {
-        "id": "person-2",
-        "firstName": "Мария",
-        "lastName": "Иванова",
-        "middleName": "Петровна",
-        "x": 300,
-        "y": 200,
-        "gender": "female",
-        "birthDate": "1985-07-20",
-        "deathDate": "",
-        "isAlive": True,
-        "role": "Супруга",
-        "photoUrl": "https://example.com/photos/maria.jpg"
+    "m2": {
+        "id": "m2", "type": "video", "fileName": "interview", "fileExtension": "mp4", "fileSize": 9876543,
+        "dateAdded": "2025-08-02", "previewUrl": "https://example.com/media/m2_preview.jpg",
+        "originalUrl": "https://example.com/media/m2.mp4", "description": "Интервью с отцом.",
+        "persons": [ _persons["3"] ], "events": [ _events["e2"] ], "geotags": [ _geotags["g2"] ],
     },
-    {
-        "id": "person-3",
-        "firstName": "Алексей",
-        "lastName": "Иванов",
-        "middleName": "Иванович",
-        "x": 200,
-        "y": 350,
-        "gender": "male",
-        "birthDate": "2010-03-10",
-        "deathDate": "",
-        "isAlive": True,
-        "role": "Сын",
-        "photoUrl": "https://example.com/photos/alexey.jpg"
+    "m3": {
+        "id": "m3", "type": "photo", "fileName": "mom_university", "fileExtension": "png", "fileSize": 222222,
+        "dateAdded": "2025-08-03", "previewUrl": "https://example.com/media/m3_preview.jpg",
+        "originalUrl": "https://example.com/media/m3.png", "description": "",
+        "persons": [ _persons["4"] ], "events": [ _events["e2"] ], "geotags": [],
     },
-    {
-        "id": "person-4",
-        "firstName": "Иван",
-        "lastName": "Иванов",
-        "middleName": "Сергеевич",
-        "x": 100,
-        "y": 50,
-        "gender": "male",
-        "birthDate": "1950-01-30",
-        "deathDate": "2015-11-25",
-        "isAlive": False,
-        "role": "Отец",
-        "photoUrl": "https://example.com/photos/ivan_sr.jpg"
+    "m4": {
+        "id": "m4", "type": "photo", "fileName": "son_birth", "fileExtension": "jpg", "fileSize": 333333,
+        "dateAdded": "2025-08-03", "previewUrl": "https://example.com/media/m4_preview.jpg",
+        "originalUrl": "https://example.com/media/m4.jpg", "description": "",
+        "persons": [ _persons["5"] ], "events": [ _events["e3"] ], "geotags": [ _geotags["g2"] ],
     },
-    {
-        "id": "person-5",
-        "firstName": "Ольга",
-        "lastName": "Иванова",
-        "middleName": "Николаевна",
-        "x": 300,
-        "y": 50,
-        "gender": "female",
-        "birthDate": "1955-09-12",
-        "deathDate": "",
-        "isAlive": True,
-        "role": "Мать",
-        "photoUrl": "https://example.com/photos/olga.jpg"
-    }
-]
+    "m5": {
+        "id": "m5", "type": "photo", "fileName": "grandpa_award", "fileExtension": "jpg", "fileSize": 444444,
+        "dateAdded": "2025-08-01", "previewUrl": "https://example.com/media/m5_preview.jpg",
+        "originalUrl": "https://example.com/media/m5.jpg", "description": "",
+        "persons": [ _persons["1"] ], "events": [], "geotags": [ _geotags["g1"] ],
+    },
+}
 
-HARDCODED_RELATIONSHIPS = [
-    {"id": "rel-1", "fromPersonId": "1", "toPersonId": "2"},
-    {"id": "rel-2", "fromPersonId": "1", "toPersonId": "3"},
-    {"id": "rel-3", "fromPersonId": "2", "toPersonId": "3"},
-    {"id": "rel-4", "fromPersonId": "4", "toPersonId": "1"},
-    {"id": "rel-5", "fromPersonId": "5", "toPersonId": "1"},
-    {"id": "rel-6", "fromPersonId": "4", "toPersonId": "5"}
-]
+_documents = {
+    "d1": {
+        "id": "d1", "fileName": "birth_certificate_ivan", "fileExtension": "pdf", "fileSize": 120000,
+        "dateAdded": "2025-08-02", "documentType": "birth_certificate",
+        "description": "Свидетельство о рождении", "downloadUrl": "https://example.com/docs/d1.pdf",
+        "persons": [ _persons["1"] ], "events": [ _events["e3"] ], "geotags": []
+    },
+    "d2": {
+        "id": "d2", "fileName": "marriage_1965", "fileExtension": "pdf", "fileSize": 220000,
+        "dateAdded": "2025-08-01", "documentType": "marriage_certificate",
+        "downloadUrl": "https://example.com/docs/d2.pdf",
+        "persons": [ _persons["1"], _persons["2"] ], "events": [ _events["e1"] ], "geotags": []
+    },
+    "d3": {
+        "id": "d3", "fileName": "university_diploma_elena", "fileExtension": "jpg", "fileSize": 800000,
+        "dateAdded": "2025-08-03", "documentType": "diploma",
+        "downloadUrl": "https://example.com/docs/d3.jpg",
+        "persons": [ _persons["4"] ], "events": [ _events["e2"] ], "geotags": []
+    },
+    "d4": {
+        "id": "d4", "fileName": "archive_extract", "fileExtension": "pdf", "fileSize": 64000,
+        "dateAdded": "2025-08-03", "documentType": "archive_extract",
+        "downloadUrl": "https://example.com/docs/d4.pdf",
+        "persons": [ _persons["3"] ], "events": [], "geotags": [ _geotags["g1"] ]
+    },
+    "d5": {
+        "id": "d5", "fileName": "family_tree_notes", "fileExtension": "txt", "fileSize": 4096,
+        "dateAdded": "2025-08-04", "documentType": "notes",
+        "downloadUrl": "https://example.com/docs/d5.txt",
+        "persons": [ _persons["2"], _persons["5"] ], "events": [], "geotags": [ _geotags["g2"] ]
+    },
+}
 
+def _paginate(items, limit:int, offset:int):
+    return items[offset: offset + limit]
 
-@app.post("/trees", tags=["Tree Core"])
-def create_tree(user_data: UserRegistration):
-    """
-    Создание нового древа с персоной (пользователем)
+def _sort(items, key, order):
+    reverse = (order == "desc")
+    return sorted(items, key=key, reverse=reverse)
 
-    Принимает данные пользователя и создает:
-    1. Новое древо с именем по шаблону "Мое древо"
-    2. Персону-владельца на основе данных пользователя
-    """
-
-    new_tree = {
-        "name": f"Мое древо"
-    }
-    new_person = {
-        "id": f"person-1",
-        "firstName": user_data.firstName,
-        "lastName": user_data.lastName,
-        "middleName": "",
-        "x": 0,
-        "y": 0,
-        "gender": user_data.gender or "male",
-        "birthDate": user_data.birthDate or "1980-01-01",
-        "deathDate": "",
-        "isAlive": True,
-        "role": "Вы",
-        "photoUrl": None
-    }
-
-    # Обновляем хардкод-данные (в реальном приложении сохраняли бы в БД)
-    global HARDCODED_TREE, HARDCODED_PERSONS
-    HARDCODED_TREE = new_tree
-    HARDCODED_PERSONS = [new_person] + HARDCODED_PERSONS[1:]  # Сохраняем остальные персоны
-
+def _media_brief(m):
     return {
-        "tree": new_tree,
-        "person": new_person
+        "id": m["id"], "type": m["type"], "fileName": m["fileName"],
+        "fileExtension": m["fileExtension"], "fileSize": m["fileSize"],
+        "dateAdded": m["dateAdded"], "previewUrl": m["previewUrl"],
     }
 
-
-@app.get("/trees/", tags=["Tree Core"])
-def get_tree_data():
+def _document_brief(d):
     return {
-        "tree": HARDCODED_TREE,
-        "persons": HARDCODED_PERSONS,
-        "relationships": HARDCODED_RELATIONSHIPS
+        "id": d["id"], "fileName": d["fileName"], "fileExtension": d["fileExtension"],
+        "fileSize": d["fileSize"], "dateAdded": d["dateAdded"], "documentType": d["documentType"],
     }
 
+@app.get("/metadata/persons", tags=["metadata"])
+def meta_persons():
+    return list(_persons.values())
 
-@app.delete("/trees/persons/{personId}", tags=["Persons"])
-def delete_person(personId: str):
-    # Просто возвращаем те же данные, как будто удалили
-    return {
-        "tree": HARDCODED_TREE,
-        "persons": HARDCODED_PERSONS,
-        "relationships": HARDCODED_RELATIONSHIPS
-    }
+@app.get("/metadata/events", tags=["metadata"])
+def meta_events():
+    return list(_events.values())
 
+@app.get("/metadata/geotags", tags=["metadata"])
+def meta_geotags():
+    return list(_geotags.values())
 
-@app.post("/trees/share", tags=["Tree Sharing"])
-def share_tree(email_data: dict = Body(..., example={"email": "user@example.com"})):
-    """
-    Отправка приглашения на совместное редактирование древа
-
-    Требует:
-    {
-        "email": "string"  # обязательное поле
-    }
-    """
-    email = email_data.get("email")
-
-    if not email:
-        raise HTTPException(status_code=400, detail="Email обязателен")
-
-    # Простейшая проверка email
-    if "@" not in email or "." not in email.split("@")[-1]:
-        raise HTTPException(status_code=400, detail="Невалидный email")
-
-    return {"message": f"Приглашение отправлено на {email}"}
-
-
-@app.post("/trees/persons/{personId}/invite", tags=["Tree Sharing"])
-def invite_to_person(
-        personId: str,
-        email_data: dict = Body(..., example={"email": "guest@example.com"})
+@app.get("/media", tags=["media"])
+def media_list(
+    search: str | None = Query(None),
+    type: str | None = Query(None, pattern="^(photo|video)$"),
+    personId: str | None = Query(None),
+    eventId: str | None = Query(None),
+    geotagId: str | None = Query(None),
+    sort: str = Query("dateAdded", pattern="^(fileName|dateAdded|fileSize)$"),
+    order: str = Query("desc", pattern="^(asc|desc)$"),
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
 ):
-    """
-    Приглашение на редактирование конкретной персоны
+    items = list(_media.values())
+    if search:
+        s = search.lower()
+        items = [m for m in items if s in m["fileName"].lower() or s in m.get("description","").lower()]
+    if type:
+        items = [m for m in items if m["type"] == type]
+    if personId:
+        items = [m for m in items if any(p["id"] == personId for p in m["persons"])]
+    if eventId:
+        items = [m for m in items if any(e["id"] == eventId for e in m["events"])]
+    if geotagId:
+        items = [m for m in items if any(g["id"] == geotagId for g in m["geotags"])]
 
-    Требует:
-    {
-        "email": "string"  # обязательное поле
+    key = (lambda x: x["fileName"]) if sort == "fileName" else (lambda x: x["fileSize"]) if sort == "fileSize" else (lambda x: x["dateAdded"])
+    brief = [_media_brief(m) for m in _sort(items, key=key, order=order)]
+    return {"items": _paginate(brief, limit, offset), "total": len(brief)}
+
+@app.get("/media/{mediaId}", tags=["media"])
+def media_details(mediaId: str):
+    if mediaId not in _media: raise HTTPException(status_code=404, detail="Медиа не найдено")
+    return _media[mediaId]
+
+@app.post("/media", status_code=201, tags=["media"])
+def media_create(body: dict = Body(...)):
+    # Мок: если не передали поля — заполним дефолтами
+    new_num = max(int(k[1:]) for k in _media.keys()) + 1
+    new_id = f"m{new_num}"
+    item = {
+        "id": new_id,
+        "type": body.get("type", "photo"),
+        "fileName": body.get("fileName", f"new_{new_id}"),
+        "fileExtension": body.get("fileExtension", "jpg"),
+        "fileSize": body.get("fileSize", 1),
+        "dateAdded": "2025-08-09",
+        "previewUrl": f"https://example.com/media/{new_id}_preview.jpg",
+        "originalUrl": f"https://example.com/media/{new_id}.jpg",
+        "description": body.get("description", ""),
+        "persons": body.get("persons", []),
+        "events": body.get("events", []),
+        "geotags": body.get("geotags", []),
     }
-    """
-    # Проверка что персона существует и жива (хардкод)
-    if personId not in {"1", "2", "4", "5"}:  # ID 3 - умерший (из примера)
-        raise HTTPException(status_code=404, detail="Персона не найдена")
+    _media[new_id] = item
+    return item
 
-    if personId == "3":
-        raise HTTPException(status_code=400, detail="Персона умерла")
+@app.patch("/media/{mediaId}", tags=["media"])
+def media_update(mediaId: str, body: dict = Body(...)):
+    if mediaId not in _media: raise HTTPException(status_code=404, detail="Медиа не найдено")
+    _media[mediaId].update({k:v for k,v in body.items() if k in _media[mediaId]})
+    return _media[mediaId]
 
-    email = email_data.get("email")
+@app.delete("/media/{mediaId}", status_code=204, tags=["media"])
+def media_delete(mediaId: str):
+    if mediaId not in _media: raise HTTPException(status_code=404, detail="Медиа не найдено")
+    _media.pop(mediaId)
+    return Response(status_code=204)
 
-    if not email:
-        raise HTTPException(status_code=400, detail="Email обязателен")
+@app.get("/documents", tags=["documents"])
+def docs_list(
+    search: str | None = Query(None),
+    documentType: str | None = Query(None),
+    personId: str | None = Query(None),
+    eventId: str | None = Query(None),
+    geotagId: str | None = Query(None),
+    sort: str = Query("dateAdded", pattern="^(fileName|dateAdded|fileSize)$"),
+    order: str = Query("desc", pattern="^(asc|desc)$"),
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+):
+    items = list(_documents.values())
+    if search:
+        s = search.lower()
+        items = [d for d in items if s in d["fileName"].lower() or s in d.get("description","").lower()]
+    if documentType:
+        items = [d for d in items if d["documentType"] == documentType]
+    if personId:
+        items = [d for d in items if any(p["id"] == personId for p in d["persons"])]
+    if eventId:
+        items = [d for d in items if any(e["id"] == eventId for e in d["events"])]
+    if geotagId:
+        items = [d for d in items if any(g["id"] == geotagId for g in d["geotags"])]
 
-    if "@" not in email or "." not in email.split("@")[-1]:
-        raise HTTPException(status_code=400, detail="Невалидный email")
+    key = (lambda x: x["fileName"]) if sort == "fileName" else (lambda x: x["fileSize"]) if sort == "fileSize" else (lambda x: x["dateAdded"])
+    brief = [_document_brief(d) for d in _sort(items, key=key, order=order)]
+    return {"items": _paginate(brief, limit, offset), "total": len(brief)}
 
-    return {
-        "message": f"Приглашение для персоны {personId} отправлено на {email}"
+@app.get("/documents/{docId}", tags=["documents"])
+def docs_details(docId: str):
+    if docId not in _documents: raise HTTPException(status_code=404, detail="Документ не найден")
+    return _documents[docId]
+
+@app.post("/documents", status_code=201, tags=["documents"])
+def docs_create(body: dict = Body(...)):
+    new_num = max(int(k[1:]) for k in _documents.keys()) + 1
+    new_id = f"d{new_num}"
+    item = {
+        "id": new_id,
+        "fileName": body.get("fileName", f"new_{new_id}"),
+        "fileExtension": body.get("fileExtension", "pdf"),
+        "fileSize": body.get("fileSize", 1),
+        "dateAdded": "2025-08-09",
+        "documentType": body.get("documentType", "other"),
+        "description": body.get("description", ""),
+        "downloadUrl": f"https://example.com/docs/{new_id}.pdf",
+        "persons": body.get("persons", []),
+        "events": body.get("events", []),
+        "geotags": body.get("geotags", []),
     }
+    _documents[new_id] = item
+    return item
+
+@app.patch("/documents/{docId}", tags=["documents"])
+def docs_update(docId: str, body: dict = Body(...)):
+    if docId not in _documents: raise HTTPException(status_code=404, detail="Документ не найден")
+    _documents[docId].update({k:v for k,v in body.items() if k in _documents[docId]})
+    return _documents[docId]
+
+@app.delete("/documents/{docId}", status_code=204, tags=["documents"])
+def docs_delete(docId: str):
+    if docId not in _documents: raise HTTPException(status_code=404, detail="Документ не найден")
+    _documents.pop(docId)
+    return Response(status_code=204)
