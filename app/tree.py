@@ -1,7 +1,18 @@
 from fastapi import FastAPI, HTTPException, Body
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+from typing import Optional
 
 app = FastAPI()
+
+class UserRegistration(BaseModel):
+    firstName: str
+    lastName: str
+    gender: Optional[str] = None
+    email: Optional[str] = None
+    birthDate: Optional[str] = None
+    accessToken: Optional[str] = None
+    refreshToken: Optional[str] = None
 
 # Хардкод данных
 HARDCODED_TREE = {
@@ -10,64 +21,74 @@ HARDCODED_TREE = {
 
 HARDCODED_PERSONS = [
     {
-        "id": "1",
+        "id": "person-1",
         "firstName": "Иван",
         "lastName": "Иванов",
         "middleName": "",
+        "x": 100,
+        "y": 200,
         "gender": "male",
         "birthDate": "1980-05-15",
         "deathDate": "",
         "isAlive": True,
         "role": "Вы",
-        "photoUrl": None
+        "photoUrl": "https://example.com/photos/ivan.jpg"
     },
     {
-        "id": "2",
+        "id": "person-2",
         "firstName": "Мария",
         "lastName": "Иванова",
         "middleName": "Петровна",
+        "x": 300,
+        "y": 200,
         "gender": "female",
         "birthDate": "1985-07-20",
         "deathDate": "",
         "isAlive": True,
         "role": "Супруга",
-        "photoUrl": None
+        "photoUrl": "https://example.com/photos/maria.jpg"
     },
     {
-        "id": "3",
+        "id": "person-3",
         "firstName": "Алексей",
         "lastName": "Иванов",
         "middleName": "Иванович",
+        "x": 200,
+        "y": 350,
         "gender": "male",
         "birthDate": "2010-03-10",
         "deathDate": "",
         "isAlive": True,
         "role": "Сын",
-        "photoUrl": None
+        "photoUrl": "https://example.com/photos/alexey.jpg"
     },
     {
-        "id": "4",
+        "id": "person-4",
         "firstName": "Иван",
         "lastName": "Иванов",
         "middleName": "Сергеевич",
+        "x": 100,
+        "y": 50,
         "gender": "male",
         "birthDate": "1950-01-30",
         "deathDate": "2015-11-25",
         "isAlive": False,
         "role": "Отец",
-        "photoUrl": None
+        "photoUrl": "https://example.com/photos/ivan_sr.jpg"
     },
     {
-        "id": "5",
+        "id": "person-5",
         "firstName": "Ольга",
         "lastName": "Иванова",
         "middleName": "Николаевна",
+        "x": 300,
+        "y": 50,
         "gender": "female",
         "birthDate": "1955-09-12",
         "deathDate": "",
         "isAlive": True,
         "role": "Мать",
-        "photoUrl": None
+        "photoUrl": "https://example.com/photos/olga.jpg"
     }
 ]
 
@@ -81,14 +102,42 @@ HARDCODED_RELATIONSHIPS = [
 ]
 
 @app.post("/trees", tags=["Tree Core"])
-def create_tree():
-    return JSONResponse(
-        status_code=201,
-        content={
-            "tree": HARDCODED_TREE,
-            "person": HARDCODED_PERSONS[0]
-        }
-    )
+def create_tree(user_data: UserRegistration):
+    """
+    Создание нового древа с персоной (пользователем)
+    
+    Принимает данные пользователя и создает:
+    1. Новое древо с именем по шаблону "Мое древо"
+    2. Персону-владельца на основе данных пользователя
+    """
+
+    new_tree = {
+        "name": f"Мое древо"
+    }
+    new_person = {
+        "id": f"person-1",
+        "firstName": user_data.firstName,
+        "lastName": user_data.lastName,
+        "middleName": "",
+        "x": 0,
+        "y": 0,
+        "gender": user_data.gender or "male",
+        "birthDate": user_data.birthDate or "1980-01-01",
+        "deathDate": "",
+        "isAlive": True,
+        "role": "Вы",
+        "photoUrl": None
+    }
+    
+    # Обновляем хардкод-данные (в реальном приложении сохраняли бы в БД)
+    global HARDCODED_TREE, HARDCODED_PERSONS
+    HARDCODED_TREE = new_tree
+    HARDCODED_PERSONS = [new_person] + HARDCODED_PERSONS[1:]  # Сохраняем остальные персоны
+    
+    return {
+        "tree": new_tree,
+        "person": new_person
+    }
 
 @app.get("/trees/", tags=["Tree Core"])
 def get_tree_data():
