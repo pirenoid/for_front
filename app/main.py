@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query, Body, Response
+from fastapi import FastAPI, HTTPException, Query, Body, Response
 
 app = FastAPI()
 
